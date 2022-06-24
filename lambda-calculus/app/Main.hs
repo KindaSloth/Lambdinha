@@ -2,28 +2,48 @@ module Main where
 
 import Data.Map as Map
 
-data Expr = Var String | Abs (String, Expr) | App (Expr, Expr) deriving(Show, Eq, Ord)
+data Expr = Int Int | Var String | Abs (String, Expr) | App (Expr, Expr) deriving (Show, Eq, Ord)
 
-newtype Value = Closure (Context, String, Expr) deriving(Show)
+data Value = VInt Int | VClosure (Context, String, Expr) deriving (Show)
 
 type Context = Map String Value
 
-eval :: Expr -> Context -> Maybe Value
+eval :: Expr -> Context -> Either String Value
 eval expr context = case expr of
-    Var name -> Map.lookup name context
-    Abs (param, body) -> Just $ Closure (context, param, body)
-    App (func, arg) -> do
-        (Closure (ctx, param, body)) <- eval func context
-        evaluedArg <- eval arg context
-        eval body (Map.insert param evaluedArg ctx)
+  Int n -> Right $ VInt n
+  Var name -> case Map.lookup name context of
+    Just x -> Right x
+    Nothing -> Left "Variable not found"
+  Abs (param, body) -> Right $ VClosure (context, param, body)
+  App (func, arg) -> do
+    funcValue <- eval func context
+    argValue <- eval arg context
+    case funcValue of
+      (VClosure (ctx, param, body)) -> eval body (Map.insert param argValue ctx)
+      VInt _ -> Left "Int is not a function (Javascript lol)"
 
 myId :: Expr
 myId = Abs ("x", Var "x")
 
 callId :: Expr
-callId = App (myId, Abs ("y", Var "y"))
+callId = App (myId, Int 1)
+
+-- Church Boolean (True)
+-- λt.λf.t
+true = Abs ("t", Abs ("f", Var "t"))
+
+-- Church Boolean (False)
+-- λt.λf.f
+false = Abs ("t", Abs ("f", Var "f"))
+
+-- Church Conditional (If/Else)
+-- λp.λa.λb.p a b
+ifelse = Abs ("p", Abs ("a", Abs ("b", App (App (Var "p", Var "a"), Var "b"))))
+
+callIfelse = App (App (App (ifelse, false), Int 1), Int 2)
 
 main :: IO ()
-main = case eval callId Map.empty of
-    Just x -> print x
-    Nothing -> pure ()
+main = case eval callIfelse Map.empty of
+  Right (VClosure (_, _, x)) -> print x
+  Right (VInt n) -> print n
+  Left err -> putStrLn err
