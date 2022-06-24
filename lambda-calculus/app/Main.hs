@@ -30,16 +30,20 @@ callId = App (myId, Int 1)
 
 -- Church Boolean (True)
 -- λt.λf.t
+true :: Expr
 true = Abs ("t", Abs ("f", Var "t"))
 
 -- Church Boolean (False)
 -- λt.λf.f
+false :: Expr
 false = Abs ("t", Abs ("f", Var "f"))
 
 -- Church Conditional (If/Else)
 -- λp.λa.λb.p a b
+ifelse :: Expr
 ifelse = Abs ("p", Abs ("a", Abs ("b", App (App (Var "p", Var "a"), Var "b"))))
 
+callIfelse :: Expr
 callIfelse = App (App (App (ifelse, false), Int 1), Int 2)
 
 main :: IO ()
