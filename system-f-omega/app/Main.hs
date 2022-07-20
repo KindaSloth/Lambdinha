@@ -93,9 +93,7 @@ infer expr tContext kContext = case expr of
     case funcType of
       (TArrow paramT bodyT) -> if argType == paramT then Right bodyT else Left "TypeMismatch"
       _ -> Left "TypeMismatch"
-  TypeAbs name term -> case infer term tContext kContext of
-    Right x -> Right $ TForall name x
-    _ -> Left "TypeMismatch"
+  TypeAbs (name, k) term -> infer term tContext (Map.insert name k kContext)
   TypeApp term t -> do
     exprT <- infer term tContext kContext
     case exprT of
