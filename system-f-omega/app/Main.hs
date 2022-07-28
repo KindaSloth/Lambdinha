@@ -130,7 +130,67 @@ pairTyp =
         )
     )
 
+-- {-# LANGUAGE RankNTypes #-}
+-- {-# LANGUAGE ExistentialQuantification #-}
+
+-- data ModuleRecord e = ModuleRecord { number :: forall x. Num x => x, inc :: forall x. Num x => x -> x, id' :: forall x. Num x => x -> x }
+
+-- number' :: forall x. Num x => x
+-- number' = 1
+
+-- inc' :: forall x. Num x => x -> x
+-- inc' x = x + 1
+
+-- id'' :: forall x. Num x => x -> x
+-- id'' x = x
+
+-- type Ex f = forall r. (forall a. f a -> r) -> r
+
+-- pack :: f a -> Ex f
+-- pack x = \k -> k x
+
+-- unpack :: Ex f -> (forall a. f a -> r) -> r
+-- unpack m k = m k
+
+-- mingas =
+--   let x = pack $ ModuleRecord { number = number', inc = inc', id' = id'' }
+--   in unpack x (\mR -> id' mR (inc mR (number mR)))
+
+-- main = print mingas
+
+-- forall r. ((forall x. x) -> (forall x. x -> x) -> (forall x. x -> x) -> r)
+
+-- forall e. (forall x. x) -> (forall x. x -> x) -> (forall x. x -> x) -> forall r. ((forall x. x) -> (forall x. x -> x) -> (forall x. x -> x) -> r) -> r
+
+-- forall e. (forall x. x) -> (forall x. x -> x) -> (forall x. x -> x) -> forall r. r -> r
+
+moduleRecord :: Expr
+moduleRecord =
+  TypeAbs
+    ("e", Star)
+    ( Abs
+        ( "number",
+          Abs
+            ( "inc",
+              Abs
+                ( "id",
+                  TypeAbs
+                    ("r", Star)
+                    ( Abs
+                        ( "mR",
+                          App (App (App (Var "mR", Var "number"), Var "inc"), Var "id"),
+                          TArrow (TForall ("x", Star) (TypeVar "x")) (TArrow (TForall ("x", Star) (TArrow (TypeVar "x") (TypeVar "x"))) (TArrow (TForall ("x", Star) (TArrow (TypeVar "x") (TypeVar "x"))) (TypeVar "r")))
+                        )
+                    ),
+                  TForall ("x", Star) (TArrow (TypeVar "x") (TypeVar "x"))
+                ),
+              TForall ("x", Star) (TArrow (TypeVar "x") (TypeVar "x"))
+            ),
+          TForall ("x", Star) (TypeVar "x")
+        )
+    )
+
 main :: IO ()
-main = case kindChecker pairTyp Map.empty of
+main = case infer moduleRecord Map.empty Map.empty of
   Right x -> print x
   Left err -> print err
